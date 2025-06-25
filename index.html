@@ -147,7 +147,8 @@
           const hourlyData = forecastData.list.slice(0, 4).map(item => ({
             time: new Date(item.dt * 1000),
             temp: Math.round(item.main.temp),
-            condition: item.weather[0].main
+            condition: item.weather[0].main,
+            precipitation: Math.round((item.pop || 0) * 100)
           }));
 
           // Get tonight's low temperature from forecast
@@ -255,6 +256,7 @@
                         <p class="text-sm text-gray-300 mb-2">${formatTime(hour.time)}</p>
                         <div class="flex justify-center mb-2">${getWeatherIcon(hour.condition, 'lg')}</div>
                         <p class="text-lg font-semibold">${hour.temp}°</p>
+                        <p class="text-xs text-blue-300 mt-1">${hour.precipitation}% rain</p>
                       </div>
                     `).join('')}
                   </div>
