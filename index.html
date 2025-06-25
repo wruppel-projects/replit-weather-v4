@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NYC Weather Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       body { font-family: 'Inter', sans-serif; }
@@ -55,14 +56,14 @@
       function getWeatherIcon(condition, size = 'lg') {
         const sizeClass = size === 'xl' ? 'icon-xl' : size === 'lg' ? 'icon-lg' : 'icon';
         const icons = {
-          'Clear': `<svg class="${sizeClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="m12 1-2 2m0 14 2 2m11-9-2-2M3 12l2 2m14.5-5-2.828-2.828M6.343 17.657l2.828-2.828m0-8.485L6.343 3.515m11.314 11.314-2.828-2.828"/></svg>`,
-          'Clouds': `<svg class="${sizeClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`,
-          'Rain': `<svg class="${sizeClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 13v8l4-4-4-4zm-1-5a4 4 0 0 0-6 0l-4 6h10l-4-6zm-4 8v8l-4-4 4-4z"/><path d="m8 13-4 6h8l-4-6z"/></svg>`,
-          'Drizzle': `<svg class="${sizeClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 13v8l4-4-4-4zm-4 0v8l-4-4 4-4z"/><path d="M17.5 8H9a7 7 0 1 0 0 14h8.5a4.5 4.5 0 0 0 0-9Z"/></svg>`,
-          'Snow': `<svg class="${sizeClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m12 2 3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
-          'Thunderstorm': `<svg class="${sizeClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m13 2-3 7h8l-6 8 3-5h-8l6-10Z"/><path d="M17.5 5H9a7 7 0 1 0 0 14h8.5a4.5 4.5 0 0 0 0-9Z"/></svg>`,
-          'Mist': `<svg class="${sizeClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8h18M3 12h18M3 16h18"/></svg>`,
-          'Fog': `<svg class="${sizeClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8h18M3 12h18M3 16h18"/></svg>`
+          'Clear': `<i data-lucide="sun" class="${sizeClass}"></i>`,
+          'Clouds': `<i data-lucide="cloud" class="${sizeClass}"></i>`,
+          'Rain': `<i data-lucide="cloud-rain" class="${sizeClass}"></i>`,
+          'Drizzle': `<i data-lucide="cloud-drizzle" class="${sizeClass}"></i>`,
+          'Snow': `<i data-lucide="cloud-snow" class="${sizeClass}"></i>`,
+          'Thunderstorm': `<i data-lucide="zap" class="${sizeClass}"></i>`,
+          'Mist': `<i data-lucide="cloud-fog" class="${sizeClass}"></i>`,
+          'Fog': `<i data-lucide="cloud-fog" class="${sizeClass}"></i>`
         };
         return icons[condition] || icons['Clear'];
       }
@@ -88,7 +89,7 @@
         const daysSinceKnown = (now.getTime() - knownNewMoon.getTime()) / (1000 * 60 * 60 * 24);
         const lunarAge = daysSinceKnown % lunarCycle;
         
-        const moonIcon = '<svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20 10 10 0 0 1 0-20Z"/></svg>';
+        const moonIcon = '<i data-lucide="moon" class="icon-lg"></i>';
         
         if (lunarAge < 1.84566) return { phase: 'New Moon', icon: moonIcon };
         else if (lunarAge < 5.53699) return { phase: 'Waxing Crescent', icon: moonIcon };
@@ -191,7 +192,7 @@
               <div class="relative z-10 p-6 max-w-4xl mx-auto">
                 <div class="mb-8">
                   <h1 class="text-3xl font-bold mb-2 flex items-center">
-                    <svg class="icon mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <i data-lucide="map-pin" class="icon mr-2"></i>
                     New York City, NY
                   </h1>
                   <p class="text-lg text-gray-200">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • ${formatTime(new Date())}</p>
@@ -205,7 +206,7 @@
                         <span class="text-6xl md:text-8xl font-light">${temp}</span><span class="text-3xl md:text-5xl font-light align-top">°F</span>
                       </div>
                       <div class="animate-float">
-                        ${temp >= 97 ? '<svg class="icon-xl" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>' : getWeatherIcon(currentData.weather[0].main, 'xl')}
+                        ${temp >= 97 ? '<i data-lucide="thermometer" class="icon-xl"></i>' : getWeatherIcon(currentData.weather[0].main, 'xl')}
                       </div>
                     </div>
                     <div class="text-right">
@@ -222,21 +223,21 @@
                 <div class="grid grid-cols-3 gap-4 mb-8">
                   <div class="bg-black bg-opacity-30 rounded-xl p-4 backdrop-blur-sm text-center">
                     <div class="flex justify-center mb-2">
-                      <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2m9.6-6.6A2 2 0 1 1 14 8.5h-7m-2.3 5.3a2.5 2.5 0 1 1 1.7 4.7H5"/></svg>
+                      <i data-lucide="wind" class="icon-lg"></i>
                     </div>
                     <p class="text-sm text-gray-300 mb-1">Wind</p>
                     <p class="text-xl font-semibold">${Math.round(currentData.wind?.speed || 0)} mph</p>
                   </div>
                   <div class="bg-black bg-opacity-30 rounded-xl p-4 backdrop-blur-sm text-center">
                     <div class="flex justify-center mb-2">
-                      <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                      <i data-lucide="droplets" class="icon-lg"></i>
                     </div>
                     <p class="text-sm text-gray-300 mb-1">Humidity</p>
                     <p class="text-xl font-semibold">${currentData.main.humidity}%</p>
                   </div>
                   <div class="bg-black bg-opacity-30 rounded-xl p-4 backdrop-blur-sm text-center">
                     <div class="flex justify-center mb-2">
-                      <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m12 1 2 2m0 14-2 2m11-9-2-2M3 12l2 2m14.5-5-2.828-2.828M6.343 17.657l2.828-2.828m0-8.485L6.343 3.515m11.314 11.314-2.828-2.828"/></svg>
+                      <i data-lucide="eye" class="icon-lg"></i>
                     </div>
                     <p class="text-sm text-gray-300 mb-1">Visibility</p>
                     <p class="text-xl font-semibold">${Math.round(currentData.visibility / 1609.34)} mi</p>
@@ -245,7 +246,7 @@
 
                 <div class="bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm mb-8">
                   <h3 class="text-xl font-semibold mb-4 flex items-center">
-                    <svg class="icon mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+                    <i data-lucide="clock" class="icon mr-2"></i>
                     Next 12 Hours
                   </h3>
                   <div class="grid grid-cols-4 gap-4">
@@ -261,14 +262,14 @@
 
                 <div class="bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm">
                   <h3 class="text-xl font-semibold mb-6 flex items-center">
-                    <svg class="icon mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20 10 10 0 0 1 0-20Z"/></svg>
+                    <i data-lucide="moon" class="icon mr-2"></i>
                     Evening & Tonight
                   </h3>
                   
                   <div class="grid grid-cols-2 gap-6 mb-6">
                     <div class="text-center">
                       <div class="flex justify-center mb-3">
-                        <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                        <i data-lucide="sunset" class="icon-lg"></i>
                       </div>
                       <h4 class="font-semibold mb-2">Sunset</h4>
                       <p class="text-2xl font-light">${new Date(currentData.sys.sunset * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
@@ -286,21 +287,21 @@
                     <div class="grid grid-cols-4 gap-4 text-center">
                       <div>
                         <div class="flex justify-center mb-2">
-                          <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+                          <i data-lucide="thermometer" class="icon-lg"></i>
                         </div>
                         <p class="text-sm text-gray-300 mb-1">Low</p>
                         <p class="font-semibold">${Math.round(tonightLow)}°F</p>
                       </div>
                       <div>
                         <div class="flex justify-center mb-2">
-                          <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2m9.6-6.6A2 2 0 1 1 14 8.5h-7m-2.3 5.3a2.5 2.5 0 1 1 1.7 4.7H5"/></svg>
+                          <i data-lucide="wind" class="icon-lg"></i>
                         </div>
                         <p class="text-sm text-gray-300 mb-1">Wind</p>
                         <p class="font-semibold">${Math.round(currentData.wind?.speed || 0)} mph</p>
                       </div>
                       <div>
                         <div class="flex justify-center mb-2">
-                          <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                          <i data-lucide="droplets" class="icon-lg"></i>
                         </div>
                         <p class="text-sm text-gray-300 mb-1">Humidity</p>
                         <p class="font-semibold">${currentData.main.humidity}%</p>
@@ -316,6 +317,9 @@
               </div>
             </div>
           `;
+          
+          // Initialize Lucide icons
+          lucide.createIcons();
         } catch (error) {
           console.error('Weather API Error:', error);
           document.getElementById('root').innerHTML = `
