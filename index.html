@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NYC Weather Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Inter', sans-serif; }
+      .animate-float { animation: float 3s ease-in-out infinite; }
+      @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <h2 class="text-2xl font-semibold mb-2">NYC Weather Dashboard</h2>
+          <p class="text-gray-300">Loading weather data...</p>
+        </div>
+      </div>
+    </div>
+    <script>
+      // Simple weather dashboard
+      const API_KEY = 'f9274ab482caa52b5581f2a1d9cffffd';
+      const NYC_LAT = 40.7128;
+      const NYC_LON = -74.0060;
+
+      function getWeatherType(condition) {
+        const conditionLower = condition.toLowerCase();
+        if (conditionLower.includes('clear')) return 'sunny';
+        if (conditionLower.includes('cloud')) return 'cloudy';
+        if (conditionLower.includes('rain') || conditionLower.includes('drizzle')) return 'rainy';
+        if (conditionLower.includes('snow')) return 'snowy';
+        if (conditionLower.includes('thunder')) return 'stormy';
+        return 'cloudy';
+      }
+
+      function getBackgroundImage(weatherType) {
+        const backgrounds = {
+          sunny: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=1920&q=80', // NYC skyline sunny day
+          cloudy: 'https://images.unsplash.com/photo-1485871981521-5b1fd3805eee?auto=format&fit=crop&w=1920&q=80', // NYC overcast day
+          rainy: 'https://images.unsplash.com/photo-1541976844346-f18aeac57b06?auto=format&fit=crop&w=1920&q=80', // NYC rain day
+          snowy: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1920&q=80', // NYC snow Central Park day
+          stormy: 'https://images.unsplash.com/photo-1534274867514-d5b47ef32b85?auto=format&fit=crop&w=1920&q=80' // NYC stormy day
+        };
+        return backgrounds[weatherType] || backgrounds.cloudy;
+      }
+
+      function getWeatherIcon(condition) {
+        const icons = {
+          'Clear': '☀️',
+          'Clouds': '☁️',
+          'Rain': '🌧️',
+          'Drizzle': '🌦️',
+          'Snow': '❄️',
+          'Thunderstorm': '⛈️',
+          'Mist': '🌫️',
+          'Fog': '🌫️'
+        };
+        return icons[condition] || '🌤️';
+      }
+
+      function formatTime(date) {
+        let hours = date.getHours();
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        return hours + ampm;
+      }
+
+      function getMoonPhase(date) {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        
+        let c, e, jd, b;
+        
+        let adjustedYear, adjustedMonth;
+if (month < 3) {
+  adjustedYear = year - 1;
+  adjustedMonth = month + 12;
+} else {
+  adjustedYear = year;
+  adjustedMonth = month;
+}
+        
+        const a = Math.floor(adjustedYear / 100);
+        const adjustedB = 2 - a + Math.floor(a / 4);
+        
+        if (adjustedYear < 1583) b = 0;
+        else b = adjustedB;
+        
+        if (adjustedYear === 1582) {
+          if (adjustedMonth > 10) b = adjustedB;
+          else if (adjustedMonth === 10) {
+            if (day >= 15) b = adjustedB;
+            else b = 0;
+          } else b = 0;
+        }
+        
+        jd = Math.floor(365.25 * (adjustedYear + 4716)) + Math.floor(30.6001 * (adjustedMonth + 1)) + day + b - 1524.5;
+        
+        const daysSinceNew = (jd - 2451549.5) / 29.53;
+        const phase = (daysSinceNew - Math.floor(daysSinceNew)) * 29.53;
+        
+        if (phase < 1.84566) return "New Moon";
+        else if (phase < 5.53699) return "Waxing Crescent";
+        else if (phase < 9.22831) return "First Quarter";
+        else if (phase < 12.91963) return "Waxing Gibbous";
+        else if (phase < 16.61096) return "Full Moon";
+        else if (phase < 20.30228) return "Waning Gibbous";
+        else if (phase < 23.99361) return "Last Quarter";
+        else if (phase < 27.68493) return "Waning Crescent";
+        else return "New Moon";
+      }
+
+      function calculateMoonTimes(date, lat, lon) {
+        // Simplified moon rise/set calculation
+        const moonrise = new Date(date);
+        const moonset = new Date(date);
+        
+        // Basic approximation - moon rises ~50 minutes later each day
+        const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+        const moonOffset = (dayOfYear * 50) % (24 * 60); // minutes
+        
+        moonrise.setHours(6 + Math.floor(moonOffset / 60), moonOffset % 60, 0, 0);
+        moonset.setHours(18 + Math.floor(moonOffset / 60), moonOffset % 60, 0, 0);
+        
+        return {
+          rise: moonrise,
+          set: moonset
+        };
+      }
+
+      async function fetchWeather() {
+        try {
+          console.log('Fetching weather data for NYC...');
+          
+          // Fetch current weather
+          const currentResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${NYC_LAT}&lon=${NYC_LON}&appid=${API_KEY}&units=imperial`);
+          if (!currentResponse.ok) {
+            throw new Error(`Weather API responded with ${currentResponse.status}: ${currentResponse.statusText}`);
+          }
+          const currentData = await currentResponse.json();
+          
+          // Fetch hourly forecast
+          const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${NYC_LAT}&lon=${NYC_LON}&appid=${API_KEY}&units=imperial`);
+          if (!forecastResponse.ok) {
+            throw new Error(`Forecast API responded with ${forecastResponse.status}: ${forecastResponse.statusText}`);
+          }
+          const forecastData = await forecastResponse.json();
+          
+          console.log('Weather data received:', currentData);
+          
+          const temp = Math.round(currentData.main.temp);
+          const feelsLike = Math.round(currentData.main.feels_like);
+          const condition = currentData.weather[0].description;
+          
+          // Determine weather type for background
+          const weatherType = getWeatherType(currentData.weather[0].main);
+          
+          // Get hourly data (next 4 periods = 12 hours since API is every 3 hours)
+          const hourlyData = forecastData.list.slice(0, 4).map(item => ({
+            time: new Date(item.dt * 1000),
+            temp: Math.round(item.main.temp),
+            condition: item.weather[0].main
+          }));
+
+          // Calculate evening/night weather
+          const now = new Date();
+          const tonight = forecastData.list.filter(item => {
+            const itemDate = new Date(item.dt * 1000);
+            return itemDate.getHours() >= 18 || itemDate.getHours() <= 6;
+          });
+          
+          const nightTemp = tonight.length > 0 ? Math.min(...tonight.map(h => Math.round(h.main.temp))) : temp - 10;
+          const nightHumidity = tonight.length > 0 ? Math.max(...tonight.map(h => h.main.humidity)) : currentData.main.humidity + 15;
+          const nightWind = tonight.length > 0 ? Math.round(tonight.reduce((sum, h) => sum + (h.wind?.speed || 0), 0) / tonight.length) : Math.round((currentData.wind?.speed || 0) * 0.7);
+          const nightCondition = tonight.length > 0 ? tonight[0].weather[0].description : 'clear sky';
+
+          // Moon data
+          const moonPhase = getMoonPhase(now);
+          const moonTimes = calculateMoonTimes(now, NYC_LAT, NYC_LON);
+          
+          // Sunset time
+          const sunsetTime = new Date(currentData.sys.sunset * 1000).toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+          });
+
+          const moonriseTime = moonTimes.rise.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+          });
+
+          const moonsetTime = moonTimes.set.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+          });
+          
+          let tempComment = '';
+          if (feelsLike >= 100) {
+            tempComment = `Hotter than a pizza oven in Little Italy - ${temp}°F but feels like ${feelsLike}°F, like standing next to a taxi's exhaust pipe. `;
+          } else if (feelsLike >= 90) {
+            tempComment = `Hot as the inside of a subway car with broken AC - ${temp}°F feeling like ${feelsLike}°F. The sidewalks are probably melting. `;
+          } else if (feelsLike >= 80) {
+            tempComment = `Warm as a bodega cat sunbathing - ${temp}°F, feels like ${feelsLike}°F. Perfect for rooftop bars in Brooklyn. `;
+          } else if (feelsLike >= 70) {
+            tempComment = `Sweet as a pretzel vendor's smile - ${temp}°F and comfortable as a Sunday stroll through the Village. `;
+          } else if (feelsLike >= 50) {
+            tempComment = `Fresh as morning bagels in the Upper West Side - ${temp}°F, classic NYC spring vibes. `;
+          } else if (feelsLike >= 32) {
+            tempComment = `Cold as a tourist's welcome in Times Square - ${temp}°F but feels like ${feelsLike}°F. Time to layer up like an onion. `;
+          } else {
+            tempComment = `Colder than a landlord's heart - ${temp}°F feeling like ${feelsLike}°F. Even the rats are staying underground. `;
+          }
+
+          const descriptions = {
+            'clear sky': `Sky's clearer than a billionaire's conscience - pure blue stretching over Manhattan like someone power-washed the atmosphere.`,
+            'few clouds': `A few clouds floating around like lost tourists in SoHo, but mostly sunshine breaking through to bless the concrete jungle.`,
+            'scattered clouds': `Clouds scattered around like pigeons in Washington Square Park - can't decide if they want to stick around or bounce.`,
+            'broken clouds': `Overcast like the mood at a Knicks game - gray clouds blanketing the city thicker than smoke from a halal cart.`,
+            'shower rain': `Light rain spitting down like an angry deli owner - just enough to make every sidewalk a slip-and-slide death trap.`,
+            'rain': `Pouring harder than complaints at a community board meeting - umbrellas are useless, you're gonna get drenched anyway.`,
+            'thunderstorm': `Thunder rolling through like the 6 train at rush hour - lightning putting on a better show than anything on Broadway.`,
+            'snow': `Snow falling like confetti at a Yankees parade - beautiful until you remember you gotta shovel this shit tomorrow.`,
+            'mist': `Foggy as a tourist's understanding of the subway system - can't see past the next block, Empire State Building's playing hide and seek.`
+          };
+
+          const summary = tempComment + (descriptions[condition] || `Weather's acting weirder than someone who pays full price in Chinatown - ${condition} happening like only NYC can deliver.`);
+
+          document.getElementById('root').innerHTML = `
+            <div class="min-h-screen text-white relative overflow-hidden" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('${getBackgroundImage(weatherType)}'); background-size: cover; background-position: center;">
+              <div class="absolute inset-0 bg-black bg-opacity-20"></div>
+              <div class="relative z-10 p-6 max-w-4xl mx-auto">
+                <div class="mb-8">
+                  <h1 class="text-3xl font-bold mb-2 flex items-center">
+                    📍 New York City, NY
+                  </h1>
+                  <p class="text-lg text-gray-200">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+
+                <div class="mb-8">
+                  <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                      <div class="text-8xl font-light mr-6">
+                        <span>${temp}</span>
+                        <span class="text-5xl">°F</span>
+                      </div>
+                      <div class="text-6xl animate-float">
+                        ${temp >= 97 ? '🌡️' : condition.includes('clear') ? '☀️' : condition.includes('cloud') ? '☁️' : condition.includes('rain') ? '🌧️' : condition.includes('snow') ? '❄️' : '🌤️'}
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-xl font-medium mb-1 capitalize">${condition}</p>
+                      <p class="text-lg text-gray-200">Feels like ${feelsLike}°F</p>
+                    </div>
+                  </div>
+
+                  <div class="bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm">
+                    <p class="text-lg leading-relaxed">${summary}</p>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 mb-8">
+                  <div class="bg-black bg-opacity-30 rounded-xl p-4 backdrop-blur-sm text-center">
+                    <div class="text-2xl mb-2">💨</div>
+                    <p class="text-sm text-gray-300 mb-1">Wind</p>
+                    <p class="text-xl font-semibold">${Math.round(currentData.wind?.speed || 0)} mph</p>
+                  </div>
+                  <div class="bg-black bg-opacity-30 rounded-xl p-4 backdrop-blur-sm text-center">
+                    <div class="text-2xl mb-2">💧</div>
+                    <p class="text-sm text-gray-300 mb-1">Humidity</p>
+                    <p class="text-xl font-semibold">${currentData.main.humidity}%</p>
+                  </div>
+                  <div class="bg-black bg-opacity-30 rounded-xl p-4 backdrop-blur-sm text-center">
+                    <div class="text-2xl mb-2">👁️</div>
+                    <p class="text-sm text-gray-300 mb-1">Visibility</p>
+                    <p class="text-xl font-semibold">${Math.round(currentData.visibility / 1609.34)} mi</p>
+                  </div>
+                </div>
+
+                <div class="bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm mb-8">
+                  <h3 class="text-xl font-semibold mb-4 flex items-center">
+                    🕐 Next 12 Hours
+                  </h3>
+                  <div class="grid grid-cols-4 gap-4">
+                    ${hourlyData.map(hour => `
+                      <div class="text-center bg-black bg-opacity-20 rounded-lg p-4">
+                        <p class="text-sm text-gray-300 mb-2">${formatTime(hour.time)}</p>
+                        <div class="text-3xl mb-2">${getWeatherIcon(hour.condition)}</div>
+                        <p class="text-lg font-semibold">${hour.temp}°</p>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+
+                <div class="bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm mb-8">
+                  <h3 class="text-xl font-semibold mb-6 flex items-center">
+                    🌙 Evening & Tonight
+                  </h3>
+
+                  <!-- Sun & Moon Info -->
+                  <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div class="text-center">
+                      <div class="text-6xl animate-float mb-3">☀️</div>
+                      <h4 class="font-semibold mb-2">Sunset</h4>
+                      <p class="text-2xl font-light" id="sunset-time">Loading...</p>
+                    </div>
+                    
+                    <div class="text-center">
+                      <div class="text-6xl animate-float mb-3" style="animation-delay: 1.5s">🌙</div>
+                      <h4 class="font-semibold mb-2">Moon Phase</h4>
+                      <p class="text-lg" id="moon-phase">Loading...</p>
+                      <p class="text-sm text-gray-300" id="moon-times">
+                        Rise: -- • Set: --
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Night Weather Conditions -->
+                  <div class="border-t border-gray-600 pt-6">
+                    <h4 class="font-semibold mb-4">Tonight's Conditions</h4>
+                    <div class="grid grid-cols-4 gap-4">
+                      <div class="text-center">
+                        <div class="text-3xl mb-2">🌡️</div>
+                        <p class="text-sm text-gray-300 mb-1">Low</p>
+                        <p class="text-xl font-semibold" id="night-temp">--°F</p>
+                      </div>
+
+                      <div class="text-center">
+                        <div class="text-3xl mb-2">💨</div>
+                        <p class="text-sm text-gray-300 mb-1">Wind</p>
+                        <p class="text-xl font-semibold" id="night-wind">-- mph</p>
+                      </div>
+
+                      <div class="text-center">
+                        <div class="text-3xl mb-2">💧</div>
+                        <p class="text-sm text-gray-300 mb-1">Humidity</p>
+                        <p class="text-xl font-semibold" id="night-humidity">--%</p>
+                      </div>
+
+                      <div class="text-center">
+                        <div class="text-3xl mb-2">☁️</div>
+                        <p class="text-sm text-gray-300 mb-1">Conditions</p>
+                        <p class="text-sm font-medium capitalize" id="night-condition">--</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm">
+                  <h3 class="text-xl font-semibold mb-4">Built for Real New Yorkers</h3>
+                  <p class="text-gray-200">No BS weather descriptions - just authentic NYC attitude with your daily forecast. Because if you're gonna check the weather in the greatest city in the world, you deserve commentary that matches the energy.</p>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // Update evening weather data
+          document.getElementById('sunset-time').textContent = sunsetTime;
+          document.getElementById('moon-phase').textContent = moonPhase;
+          document.getElementById('moon-times').textContent = `Rise: ${moonriseTime} • Set: ${moonsetTime}`;
+          document.getElementById('night-temp').textContent = `${nightTemp}°F`;
+          document.getElementById('night-wind').textContent = `${nightWind} mph`;
+          document.getElementById('night-humidity').textContent = `${nightHumidity}%`;
+          document.getElementById('night-condition').textContent = nightCondition;
+        } catch (error) {
+          console.error('Weather API Error:', error);
+          document.getElementById('root').innerHTML = `
+            <div class="min-h-screen bg-red-900 text-white flex items-center justify-center">
+              <div class="text-center max-w-md mx-auto p-6">
+                <h2 class="text-2xl font-bold mb-4">Weather Service Error</h2>
+                <p class="mb-4">Unable to fetch NYC weather data. Check the browser console for details.</p>
+                <p class="text-sm text-gray-300">Error: ${error.message}</p>
+                <button onclick="location.reload()" class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                  Try Again
+                </button>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      fetchWeather();
+    </script>
+  </body>
+</html>
