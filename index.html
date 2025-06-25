@@ -77,6 +77,38 @@
         return directions[index];
       }
 
+      function getMoonPhase() {
+        const now = new Date();
+        const lunarCycle = 29.53058867;
+        const knownNewMoon = new Date('2024-01-11T11:57:00Z');
+        const daysSinceKnown = (now.getTime() - knownNewMoon.getTime()) / (1000 * 60 * 60 * 24);
+        const lunarAge = daysSinceKnown % lunarCycle;
+        
+        if (lunarAge < 1.84566) return { phase: 'New Moon', emoji: '🌑' };
+        else if (lunarAge < 5.53699) return { phase: 'Waxing Crescent', emoji: '🌒' };
+        else if (lunarAge < 9.22831) return { phase: 'First Quarter', emoji: '🌓' };
+        else if (lunarAge < 12.91963) return { phase: 'Waxing Gibbous', emoji: '🌔' };
+        else if (lunarAge < 16.61096) return { phase: 'Full Moon', emoji: '🌕' };
+        else if (lunarAge < 20.30228) return { phase: 'Waning Gibbous', emoji: '🌖' };
+        else if (lunarAge < 23.99361) return { phase: 'Last Quarter', emoji: '🌗' };
+        else return { phase: 'Waning Crescent', emoji: '🌘' };
+      }
+
+      function getMoonTimes() {
+        // Simplified moon rise/set times for NYC
+        const now = new Date();
+        const moonrise = new Date(now);
+        moonrise.setHours(16, 15, 0, 0); // Approximate moonrise
+        const moonset = new Date(now);
+        moonset.setDate(moonset.getDate() + 1);
+        moonset.setHours(5, 30, 0, 0); // Approximate moonset next day
+        
+        return {
+          rise: moonrise.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          set: moonset.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+        };
+      }
+
       async function fetchWeather() {
         try {
           console.log('Fetching weather data for NYC...');
@@ -110,6 +142,11 @@
             temp: Math.round(item.main.temp),
             condition: item.weather[0].main
           }));
+
+          // Get tonight's low temperature from forecast
+          const tonightLow = Math.min(...forecastData.list.slice(0, 8).map(item => item.main.temp));
+          const moonData = getMoonPhase();
+          const moonTimes = getMoonTimes();
           
           let tempComment = '';
           if (feelsLike >= 100) {
@@ -208,23 +245,47 @@
                 </div>
 
                 <div class="bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm">
-                  <h3 class="text-xl font-semibold mb-4">Evening Forecast</h3>
-                  <div class="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p class="text-gray-300 mb-1">🌅 Sunrise</p>
-                      <p class="font-semibold">${new Date(currentData.sys.sunrise * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+                  <h3 class="text-xl font-semibold mb-6 flex items-center">
+                    🌙 Evening & Tonight
+                  </h3>
+                  
+                  <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div class="text-center">
+                      <div class="text-4xl mb-3">☀️</div>
+                      <h4 class="font-semibold mb-2">Sunset</h4>
+                      <p class="text-2xl font-light">${new Date(currentData.sys.sunset * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                     </div>
-                    <div>
-                      <p class="text-gray-300 mb-1">🌇 Sunset</p>
-                      <p class="font-semibold">${new Date(currentData.sys.sunset * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+                    <div class="text-center">
+                      <div class="text-4xl mb-3">${moonData.emoji}</div>
+                      <h4 class="font-semibold mb-2">Moon Phase</h4>
+                      <p class="text-lg font-medium">${moonData.phase}</p>
+                      <p class="text-sm text-gray-300">Rise: ${moonTimes.rise} • Set: ${moonTimes.set}</p>
                     </div>
-                    <div>
-                      <p class="text-gray-300 mb-1">🌡️ Today's Range</p>
-                      <p class="font-semibold">${Math.round(currentData.main.temp_min)}° - ${Math.round(currentData.main.temp_max)}°</p>
-                    </div>
-                    <div>
-                      <p class="text-gray-300 mb-1">💨 Wind Direction</p>
-                      <p class="font-semibold">${getWindDirection(currentData.wind?.deg || 0)}</p>
+                  </div>
+
+                  <div class="border-t border-gray-600 pt-4">
+                    <h4 class="font-semibold mb-4">Tonight's Conditions</h4>
+                    <div class="grid grid-cols-4 gap-4 text-center">
+                      <div>
+                        <div class="text-2xl mb-2">🌡️</div>
+                        <p class="text-sm text-gray-300 mb-1">Low</p>
+                        <p class="font-semibold">${Math.round(tonightLow)}°F</p>
+                      </div>
+                      <div>
+                        <div class="text-2xl mb-2">💨</div>
+                        <p class="text-sm text-gray-300 mb-1">Wind</p>
+                        <p class="font-semibold">${Math.round(currentData.wind?.speed || 0)} mph</p>
+                      </div>
+                      <div>
+                        <div class="text-2xl mb-2">💧</div>
+                        <p class="text-sm text-gray-300 mb-1">Humidity</p>
+                        <p class="font-semibold">${currentData.main.humidity}%</p>
+                      </div>
+                      <div>
+                        <div class="text-2xl mb-2">☁️</div>
+                        <p class="text-sm text-gray-300 mb-1">Conditions</p>
+                        <p class="text-sm font-medium capitalize">${condition}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
