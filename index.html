@@ -71,6 +71,12 @@
         return hours + ampm;
       }
 
+      function getWindDirection(degrees) {
+        const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+        const index = Math.round(degrees / 22.5) % 16;
+        return directions[index];
+      }
+
       function getMoonPhase(date) {
         const year = date.getFullYear();
         const month = date.getMonth();
@@ -78,14 +84,13 @@
         
         let c, e, jd, b;
         
-        let adjustedYear, adjustedMonth;
-if (month < 3) {
-  adjustedYear = year - 1;
-  adjustedMonth = month + 12;
-} else {
-  adjustedYear = year;
-  adjustedMonth = month;
-}
+        if (month < 3) {
+          const adjustedYear = year - 1;
+          const adjustedMonth = month + 12;
+        } else {
+          const adjustedYear = year;
+          const adjustedMonth = month;
+        }
         
         const a = Math.floor(adjustedYear / 100);
         const adjustedB = 2 - a + Math.floor(a / 4);
@@ -249,11 +254,10 @@ if (month < 3) {
                 <div class="mb-8">
                   <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center">
-                      <div class="text-8xl font-light mr-6">
-                        <span>${temp}</span>
-                        <span class="text-5xl">°F</span>
+                      <div class="mr-6">
+                        <span class="text-6xl md:text-8xl font-light">${temp}</span><span class="text-3xl md:text-5xl font-light align-top">°F</span>
                       </div>
-                      <div class="text-6xl animate-float">
+                      <div class="text-4xl md:text-6xl animate-float">
                         ${temp >= 97 ? '🌡️' : condition.includes('clear') ? '☀️' : condition.includes('cloud') ? '☁️' : condition.includes('rain') ? '🌧️' : condition.includes('snow') ? '❄️' : '🌤️'}
                       </div>
                     </div>
@@ -356,8 +360,25 @@ if (month < 3) {
                 </div>
 
                 <div class="bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm">
-                  <h3 class="text-xl font-semibold mb-4">Built for Real New Yorkers</h3>
-                  <p class="text-gray-200">No BS weather descriptions - just authentic NYC attitude with your daily forecast. Because if you're gonna check the weather in the greatest city in the world, you deserve commentary that matches the energy.</p>
+                  <h3 class="text-xl font-semibold mb-4">Evening Forecast</h3>
+                  <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p class="text-gray-300 mb-1">🌅 Sunrise</p>
+                      <p class="font-semibold">${new Date(currentData.sys.sunrise * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+                    </div>
+                    <div>
+                      <p class="text-gray-300 mb-1">🌇 Sunset</p>
+                      <p class="font-semibold">${new Date(currentData.sys.sunset * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+                    </div>
+                    <div>
+                      <p class="text-gray-300 mb-1">🌡️ Today's Range</p>
+                      <p class="font-semibold">${Math.round(currentData.main.temp_min)}° - ${Math.round(currentData.main.temp_max)}°</p>
+                    </div>
+                    <div>
+                      <p class="text-gray-300 mb-1">💨 Wind Direction</p>
+                      <p class="font-semibold">${getWindDirection(currentData.wind?.deg || 0)}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
