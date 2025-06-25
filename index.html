@@ -77,69 +77,6 @@
         return directions[index];
       }
 
-      function getMoonPhase(date) {
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const day = date.getDate();
-        
-        let c, e, jd, b;
-        
-        if (month < 3) {
-          const adjustedYear = year - 1;
-          const adjustedMonth = month + 12;
-        } else {
-          const adjustedYear = year;
-          const adjustedMonth = month;
-        }
-        
-        const a = Math.floor(adjustedYear / 100);
-        const adjustedB = 2 - a + Math.floor(a / 4);
-        
-        if (adjustedYear < 1583) b = 0;
-        else b = adjustedB;
-        
-        if (adjustedYear === 1582) {
-          if (adjustedMonth > 10) b = adjustedB;
-          else if (adjustedMonth === 10) {
-            if (day >= 15) b = adjustedB;
-            else b = 0;
-          } else b = 0;
-        }
-        
-        jd = Math.floor(365.25 * (adjustedYear + 4716)) + Math.floor(30.6001 * (adjustedMonth + 1)) + day + b - 1524.5;
-        
-        const daysSinceNew = (jd - 2451549.5) / 29.53;
-        const phase = (daysSinceNew - Math.floor(daysSinceNew)) * 29.53;
-        
-        if (phase < 1.84566) return "New Moon";
-        else if (phase < 5.53699) return "Waxing Crescent";
-        else if (phase < 9.22831) return "First Quarter";
-        else if (phase < 12.91963) return "Waxing Gibbous";
-        else if (phase < 16.61096) return "Full Moon";
-        else if (phase < 20.30228) return "Waning Gibbous";
-        else if (phase < 23.99361) return "Last Quarter";
-        else if (phase < 27.68493) return "Waning Crescent";
-        else return "New Moon";
-      }
-
-      function calculateMoonTimes(date, lat, lon) {
-        // Simplified moon rise/set calculation
-        const moonrise = new Date(date);
-        const moonset = new Date(date);
-        
-        // Basic approximation - moon rises ~50 minutes later each day
-        const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
-        const moonOffset = (dayOfYear * 50) % (24 * 60); // minutes
-        
-        moonrise.setHours(6 + Math.floor(moonOffset / 60), moonOffset % 60, 0, 0);
-        moonset.setHours(18 + Math.floor(moonOffset / 60), moonOffset % 60, 0, 0);
-        
-        return {
-          rise: moonrise,
-          set: moonset
-        };
-      }
-
       async function fetchWeather() {
         try {
           console.log('Fetching weather data for NYC...');
@@ -173,41 +110,6 @@
             temp: Math.round(item.main.temp),
             condition: item.weather[0].main
           }));
-
-          // Calculate evening/night weather
-          const now = new Date();
-          const tonight = forecastData.list.filter(item => {
-            const itemDate = new Date(item.dt * 1000);
-            return itemDate.getHours() >= 18 || itemDate.getHours() <= 6;
-          });
-          
-          const nightTemp = tonight.length > 0 ? Math.min(...tonight.map(h => Math.round(h.main.temp))) : temp - 10;
-          const nightHumidity = tonight.length > 0 ? Math.max(...tonight.map(h => h.main.humidity)) : currentData.main.humidity + 15;
-          const nightWind = tonight.length > 0 ? Math.round(tonight.reduce((sum, h) => sum + (h.wind?.speed || 0), 0) / tonight.length) : Math.round((currentData.wind?.speed || 0) * 0.7);
-          const nightCondition = tonight.length > 0 ? tonight[0].weather[0].description : 'clear sky';
-
-          // Moon data
-          const moonPhase = getMoonPhase(now);
-          const moonTimes = calculateMoonTimes(now, NYC_LAT, NYC_LON);
-          
-          // Sunset time
-          const sunsetTime = new Date(currentData.sys.sunset * 1000).toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit',
-            hour12: true 
-          });
-
-          const moonriseTime = moonTimes.rise.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit',
-            hour12: true 
-          });
-
-          const moonsetTime = moonTimes.set.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit',
-            hour12: true 
-          });
           
           let tempComment = '';
           if (feelsLike >= 100) {
@@ -305,60 +207,6 @@
                   </div>
                 </div>
 
-                <div class="bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm mb-8">
-                  <h3 class="text-xl font-semibold mb-6 flex items-center">
-                    🌙 Evening & Tonight
-                  </h3>
-
-                  <!-- Sun & Moon Info -->
-                  <div class="grid grid-cols-2 gap-6 mb-6">
-                    <div class="text-center">
-                      <div class="text-6xl animate-float mb-3">☀️</div>
-                      <h4 class="font-semibold mb-2">Sunset</h4>
-                      <p class="text-2xl font-light" id="sunset-time">Loading...</p>
-                    </div>
-                    
-                    <div class="text-center">
-                      <div class="text-6xl animate-float mb-3" style="animation-delay: 1.5s">🌙</div>
-                      <h4 class="font-semibold mb-2">Moon Phase</h4>
-                      <p class="text-lg" id="moon-phase">Loading...</p>
-                      <p class="text-sm text-gray-300" id="moon-times">
-                        Rise: -- • Set: --
-                      </p>
-                    </div>
-                  </div>
-
-                  <!-- Night Weather Conditions -->
-                  <div class="border-t border-gray-600 pt-6">
-                    <h4 class="font-semibold mb-4">Tonight's Conditions</h4>
-                    <div class="grid grid-cols-4 gap-4">
-                      <div class="text-center">
-                        <div class="text-3xl mb-2">🌡️</div>
-                        <p class="text-sm text-gray-300 mb-1">Low</p>
-                        <p class="text-xl font-semibold" id="night-temp">--°F</p>
-                      </div>
-
-                      <div class="text-center">
-                        <div class="text-3xl mb-2">💨</div>
-                        <p class="text-sm text-gray-300 mb-1">Wind</p>
-                        <p class="text-xl font-semibold" id="night-wind">-- mph</p>
-                      </div>
-
-                      <div class="text-center">
-                        <div class="text-3xl mb-2">💧</div>
-                        <p class="text-sm text-gray-300 mb-1">Humidity</p>
-                        <p class="text-xl font-semibold" id="night-humidity">--%</p>
-                      </div>
-
-                      <div class="text-center">
-                        <div class="text-3xl mb-2">☁️</div>
-                        <p class="text-sm text-gray-300 mb-1">Conditions</p>
-                        <p class="text-sm font-medium capitalize" id="night-condition">--</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 <div class="bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm">
                   <h3 class="text-xl font-semibold mb-4">Evening Forecast</h3>
                   <div class="grid grid-cols-2 gap-4 text-sm">
@@ -383,15 +231,6 @@
               </div>
             </div>
           `;
-
-          // Update evening weather data
-          document.getElementById('sunset-time').textContent = sunsetTime;
-          document.getElementById('moon-phase').textContent = moonPhase;
-          document.getElementById('moon-times').textContent = `Rise: ${moonriseTime} • Set: ${moonsetTime}`;
-          document.getElementById('night-temp').textContent = `${nightTemp}°F`;
-          document.getElementById('night-wind').textContent = `${nightWind} mph`;
-          document.getElementById('night-humidity').textContent = `${nightHumidity}%`;
-          document.getElementById('night-condition').textContent = nightCondition;
         } catch (error) {
           console.error('Weather API Error:', error);
           document.getElementById('root').innerHTML = `
