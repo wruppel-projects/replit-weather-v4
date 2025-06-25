@@ -173,8 +173,20 @@
             precipitation: Math.round((item.pop || 0) * 100)
           }));
 
-          // Get tonight's low temperature from forecast
-          const tonightLow = Math.min(...forecastData.list.slice(0, 8).map(item => item.main.temp));
+          // Get tonight's low temperature (from now until 6am tomorrow)
+          const now = new Date();
+          const tomorrow6am = new Date(now);
+          tomorrow6am.setDate(tomorrow6am.getDate() + 1);
+          tomorrow6am.setHours(6, 0, 0, 0);
+          
+          const tonightForecast = forecastData.list.filter(item => {
+            const itemTime = new Date(item.dt * 1000);
+            return itemTime >= now && itemTime <= tomorrow6am;
+          });
+          
+          const tonightLow = tonightForecast.length > 0 
+            ? Math.min(...tonightForecast.map(item => item.main.temp))
+            : currentData.main.temp_min;
           const moonData = getMoonPhase();
           const moonTimes = getMoonTimes();
           
